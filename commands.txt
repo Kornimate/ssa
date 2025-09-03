@@ -1,0 +1,9 @@
+Install:
+    npm init -y
+    npm install --save-dev typescript ts-node @types/node
+    npm install @babel/core @babel/cli @babel/preset-typescript @babel/parser @babel/traverse @babel/types @babel/generator
+    npm i --save-dev @types/babel__core
+
+Run:
+    npx tsc
+    npx babel ./TestMaterial/input.ts --out-file ./TestMaterial/output.js
