@@ -1,11 +1,12 @@
 {
   "compilerOptions": {
-    "target": "ES2020",
+    "target": "esnext",
     "module": "CommonJS",
     "outDir": "dist",
     "esModuleInterop": true,
     "strict": true,
     "skipLibCheck": true
   },
-  "include": ["ssaTransform.ts"]
+  "include": ["**/*.ts"],
+  "exclude": ["node_modules", "dist", "TestMaterial"], 
 }

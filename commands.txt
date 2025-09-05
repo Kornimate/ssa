@@ -6,4 +6,4 @@ Install:
 
 Run:
     npx tsc
-    npx babel ./TestMaterial/input.ts --out-file ./TestMaterial/output.js
+    npx babel ./TestMaterial/Input/input.ts --out-file ./TestMaterial/Output/output.js
