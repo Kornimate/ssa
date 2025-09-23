@@ -1,0 +1,1 @@
+export type BlockKind = 'entry' | 'normal' | 'condition' | 'exit';
