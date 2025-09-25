@@ -1,13 +1,33 @@
-import { parse } from '@babel/parser';
-import { buildCFG, cfgToObject, cfgToDot } from './cfgTransform';
-import fs from 'fs';
-import path from 'path';
+import { parse } from "@babel/parser";
+import { buildCFG, cfgToObject, cfgToDot } from "./cfgTransform";
+import fs from "fs";
+import path from "path";
 
-const filePath = path.resolve("./TestMaterial/Input/input.ts");
-const ast = parse(fs.readFileSync(filePath, "utf8"), { sourceType: "module", plugins: ["typescript"] });
-const cfg = buildCFG(ast.program);
+export function useCfg(fileName: string = "input") {
 
-const graphFilePath = path.resolve("./TestMaterial/Output/graph.dot");
-fs.writeFileSync(graphFilePath, cfgToDot(cfg), "utf8");
+    const filePath = path.resolve(`./TestMaterial/Input/${fileName}.ts`);
+  const ast = parse(fs.readFileSync(filePath, "utf-8"), {
+    sourceType: "module",
+    plugins: ["typescript"],
+  });
 
-// console.log(JSON.stringify(cfgToObject(cfg), null, 2));
+  const cfg = buildCFG(ast.program);
+
+  const graphFilePath = path.resolve(
+    `./TestMaterial/Output/graph.dot`
+  );
+
+  fs.writeFileSync(graphFilePath, cfgToDot(cfg), "utf-8");
+
+  const jsonFilePath = path.resolve(
+    `./TestMaterial/Output/${fileName}.json`
+  );
+
+  fs.writeFileSync(
+    jsonFilePath,
+    JSON.stringify(cfgToObject(cfg), null, 2),
+    "utf-8"
+  );
+}
+
+useCfg();
