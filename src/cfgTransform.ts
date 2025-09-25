@@ -20,14 +20,14 @@
       Try/Catch/Finally
 */
 
-import * as t from '@babel/types';
-import { BlockId } from './Models/BlockId';
-import { BlockKind } from './Models/BlockKind';
-import { Block } from './Models/BasicBlock';
-import { CFG } from './Models/Cfg';
-import { TraversalContext } from './Models/TraversalContext';
+import * as t from "@babel/types";
+import { BlockId } from "./Models/BlockId";
+import { BlockKind } from "./Models/BlockKind";
+import { Block } from "./Models/BasicBlock";
+import { CFG } from "./Models/Cfg";
+import { TraversalContext } from "./Models/TraversalContext";
 
-function makeEmptyBlock(id: BlockId, kind: BlockKind = 'normal'): Block {
+function makeEmptyBlock(id: BlockId, kind: BlockKind = "normal"): Block {
   return { id, kind, stmts: [], succs: [], preds: [] };
 }
 
@@ -35,8 +35,8 @@ function initCFG(): CFG {
   const blocks = new Map<BlockId, Block>();
   const entry = 0;
   const exit = 1;
-  blocks.set(entry, makeEmptyBlock(entry, 'entry'));
-  blocks.set(exit, makeEmptyBlock(exit, 'exit'));
+  blocks.set(entry, makeEmptyBlock(entry, "entry"));
+  blocks.set(exit, makeEmptyBlock(exit, "exit"));
   return { entry, exit, blocks };
 }
 
@@ -45,7 +45,7 @@ export function createTraversalContext(): TraversalContext {
   const ctx: Partial<TraversalContext> = {};
   let nextId = 2;
 
-  function createBlock(kind: BlockKind = 'normal') {
+  function createBlock(kind: BlockKind = "normal") {
     const id = nextId++;
     cfg.blocks.set(id, makeEmptyBlock(id, kind));
     return id;
@@ -61,12 +61,12 @@ export function createTraversalContext(): TraversalContext {
 
   function addStmt(node: t.Statement) {
     const b = cfg.blocks.get(ctx.cur!);
-    if (!b) throw new Error('current block missing');
+    if (!b) throw new Error("current block missing");
     b.stmts.push(node);
   }
 
   function splitCurrent() {
-    const newId = createBlock('normal');
+    const newId = createBlock("normal");
     addEdge(ctx.cur!, newId);
     ctx.cur = newId;
     return newId;
@@ -88,7 +88,7 @@ export function createTraversalContext(): TraversalContext {
 export function buildCFG(programNode: t.Program): CFG {
   const ctx = createTraversalContext();
 
-  const first = ctx.createBlock('normal');
+  const first = ctx.createBlock("normal");
   ctx.addEdge(ctx.cfg.entry, first);
   ctx.cur = first;
 
@@ -107,35 +107,35 @@ function visitStatement(node: t.Statement, ctx: TraversalContext) {
   if (!node) return;
 
   switch (node.type) {
-    case 'BlockStatement':
+    case "BlockStatement":
       for (const s of node.body) visitStatement(s, ctx);
       return;
 
-    case 'ExpressionStatement':
-    case 'VariableDeclaration':
+    case "ExpressionStatement":
+    case "VariableDeclaration":
       ctx.addStmt(node);
       return;
 
-    case 'IfStatement':
+    case "IfStatement":
       visitIf(node, ctx);
       return;
 
-    case 'WhileStatement':
+    case "WhileStatement":
       visitWhile(node, ctx);
       return;
 
-    case 'ForStatement':
+    case "ForStatement":
       visitFor(node, ctx);
       return;
 
-    case 'ReturnStatement':
+    case "ReturnStatement":
       ctx.addStmt(node);
       ctx.addEdge(ctx.cur, ctx.cfg.exit);
-      const afterRet = ctx.createBlock('normal');
+      const afterRet = ctx.createBlock("normal");
       ctx.cur = afterRet;
       return;
 
-    case 'BreakStatement':
+    case "BreakStatement":
       ctx.addStmt(node);
       if (ctx.breakTargets.length === 0) {
         ctx.addEdge(ctx.cur, ctx.cfg.exit);
@@ -143,21 +143,22 @@ function visitStatement(node: t.Statement, ctx: TraversalContext) {
         const target = ctx.breakTargets[ctx.breakTargets.length - 1].target;
         ctx.addEdge(ctx.cur, target);
       }
-      ctx.cur = ctx.createBlock('normal');
+      ctx.cur = ctx.createBlock("normal");
       return;
 
-    case 'ContinueStatement':
+    case "ContinueStatement":
       ctx.addStmt(node);
       if (ctx.continueTargets.length === 0) {
         ctx.addEdge(ctx.cur, ctx.cfg.exit);
       } else {
-        const target = ctx.continueTargets[ctx.continueTargets.length - 1].target;
+        const target =
+          ctx.continueTargets[ctx.continueTargets.length - 1].target;
         ctx.addEdge(ctx.cur, target);
       }
-      ctx.cur = ctx.createBlock('normal');
+      ctx.cur = ctx.createBlock("normal");
       return;
 
-    case 'FunctionDeclaration':
+    case "FunctionDeclaration":
       ctx.addStmt(node);
       return;
 
@@ -167,18 +168,18 @@ function visitStatement(node: t.Statement, ctx: TraversalContext) {
 }
 
 function visitIf(node: t.IfStatement, ctx: TraversalContext) {
-  const condBlock = ctx.createBlock('condition');
+  const condBlock = ctx.createBlock("condition");
   ctx.addEdge(ctx.cur, condBlock);
   const condB = ctx.cfg.blocks.get(condBlock)!;
   condB.condition = node.test;
 
-  const thenBlock = ctx.createBlock('normal');
+  const thenBlock = ctx.createBlock("normal");
   ctx.addEdge(condBlock, thenBlock);
 
-  const elseBlock = node.alternate ? ctx.createBlock('normal') : null;
+  const elseBlock = node.alternate ? ctx.createBlock("normal") : null;
   if (elseBlock) ctx.addEdge(condBlock, elseBlock);
 
-  const after = ctx.createBlock('normal');
+  const after = ctx.createBlock("normal");
 
   ctx.cur = thenBlock;
   visitStatement(node.consequent as t.Statement, ctx);
@@ -196,10 +197,10 @@ function visitIf(node: t.IfStatement, ctx: TraversalContext) {
 }
 
 function visitWhile(node: t.WhileStatement, ctx: TraversalContext) {
-  const condBlock = ctx.createBlock('condition');
+  const condBlock = ctx.createBlock("condition");
   ctx.addEdge(ctx.cur, condBlock);
-  const bodyBlock = ctx.createBlock('normal');
-  const after = ctx.createBlock('normal');
+  const bodyBlock = ctx.createBlock("normal");
+  const after = ctx.createBlock("normal");
 
   ctx.cfg.blocks.get(condBlock)!.condition = node.test;
   ctx.addEdge(condBlock, bodyBlock);
@@ -210,7 +211,8 @@ function visitWhile(node: t.WhileStatement, ctx: TraversalContext) {
 
   ctx.cur = bodyBlock;
   visitStatement(node.body as t.Statement, ctx);
-  if (!ctx.cfg.blocks.get(ctx.cur)!.succs.length) ctx.addEdge(ctx.cur, condBlock);
+  if (!ctx.cfg.blocks.get(ctx.cur)!.succs.length)
+    ctx.addEdge(ctx.cur, condBlock);
 
   ctx.breakTargets.pop();
   ctx.continueTargets.pop();
@@ -224,13 +226,14 @@ function visitFor(node: t.ForStatement, ctx: TraversalContext) {
     else ctx.addStmt(t.expressionStatement(node.init as t.Expression));
   }
 
-  const condBlock = ctx.createBlock('condition');
+  const condBlock = ctx.createBlock("condition");
   ctx.addEdge(ctx.cur, condBlock);
-  ctx.cfg.blocks.get(condBlock)!.condition = node.test || t.booleanLiteral(true);
+  ctx.cfg.blocks.get(condBlock)!.condition =
+    node.test || t.booleanLiteral(true);
 
-  const bodyBlock = ctx.createBlock('normal');
-  const after = ctx.createBlock('normal');
-  const updateBlock = node.update ? ctx.createBlock('normal') : condBlock;
+  const bodyBlock = ctx.createBlock("normal");
+  const after = ctx.createBlock("normal");
+  const updateBlock = node.update ? ctx.createBlock("normal") : condBlock;
 
   ctx.addEdge(condBlock, bodyBlock);
   ctx.addEdge(condBlock, after);
@@ -260,7 +263,14 @@ function visitFor(node: t.ForStatement, ctx: TraversalContext) {
 export function cfgToObject(cfg: CFG) {
   const blocks: any[] = [];
   for (const [, b] of cfg.blocks) {
-    blocks.push({ id: b.id, kind: b.kind, stmts: b.stmts.map((s: any) => s.type), cond: (b.condition as any)?.type, succs: b.succs, preds: b.preds });
+    blocks.push({
+      id: b.id,
+      kind: b.kind,
+      stmts: b.stmts.map((s: any) => s.type),
+      cond: (b.condition as any)?.type,
+      succs: b.succs,
+      preds: b.preds,
+    });
   }
   return { entry: cfg.entry, exit: cfg.exit, blocks };
 }
@@ -276,6 +286,5 @@ export function cfgToDot(cfg: ReturnType<typeof buildCFG>): string {
   dot += "}\n";
   return dot;
 }
-
 
 export default buildCFG;
