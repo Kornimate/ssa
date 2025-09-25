@@ -4,8 +4,9 @@
   "description": "Testing SSA mini version with TypeScript",
   "main": "index.js",
   "scripts": {
-    "test": "npx tsc && npx babel ./TestMaterial/Input/input.ts --out-file ./TestMaterial/Output/output.js",
-    "test2": "npx tsc && node ./dist/useCfg.js && dot -Tpng ./TestMaterial/Output/graph.dot -o ./TestMaterial/Output/graph.png"
+    "test": "vitest",
+    "ssa": "npx tsc && npx babel ./TestMaterial/Input/input.ts --out-file ./TestMaterial/Output/output.js",
+    "cfg": "npx tsc && node ./dist/useCfg.js && dot -Tpng ./TestMaterial/Output/graph.dot -o ./TestMaterial/Output/graph.png"
   },
   "repository": {
     "type": "git",
@@ -25,7 +26,8 @@
     "@babel/parser": "^7.28.3",
     "@babel/preset-typescript": "^7.27.1",
     "@babel/traverse": "^7.28.3",
-    "@babel/types": "^7.28.2"
+    "@babel/types": "^7.28.2",
+    "vitest": "^3.2.4"
   },
   "devDependencies": {
     "@types/babel__core": "^7.20.5",
