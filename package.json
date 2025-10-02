@@ -6,7 +6,7 @@
   "scripts": {
     "test": "vitest",
     "ssa": "npx tsc && npx babel ./TestMaterial/Input/input.ts --out-file ./TestMaterial/Output/output.js",
-    "cfg": "npx tsc && node ./dist/src/useCfg.js && dot -Tpng ./TestMaterial/Output/graph.dot -o ./TestMaterial/Output/graph.png"
+    "cfg": "npx tsc && node ./dist/src/mainCfg.js && dot -Tpng ./TestMaterial/Output/graph.dot -o ./TestMaterial/Output/graph.png"
   },
   "repository": {
     "type": "git",
