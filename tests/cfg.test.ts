@@ -1,3 +1,5 @@
+//look at jelly for test material, tests/micro folder
+
 import { describe, it, expect } from 'vitest';
 import { test } from '../src/dummy';
 

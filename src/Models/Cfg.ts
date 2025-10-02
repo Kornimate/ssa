@@ -1,8 +1,7 @@
 import { BlockId } from "./BlockId";
-import { Block } from "./BasicBlock";
+import { BasicBlock } from "./BasicBlock";
 
 export interface CFG {
-  entry: BlockId;
-  exit: BlockId;
-  blocks: Map<BlockId, Block>;
+  entry: BasicBlock;
+  exit: BasicBlock;
 }

@@ -1,21 +1,22 @@
-import { PendingJumpTarget } from './PendingJumpTarget';
 import { CFG } from './Cfg';
 import { BlockId } from './BlockId';
-import { BlockKind } from './BlockKind';
 import * as t from '@babel/types';
+import { BasicBlock } from './BasicBlock';
 
 export interface TraversalContext {
   cfg: CFG;
-  cur: BlockId;
-  nextId: number;
+  currentBlock: BasicBlock | null;
+  nextBlock: BasicBlock | null;
 
-  /** stacks used to handle break/continue (for current loop) */
-  breakTargets: PendingJumpTarget[];
-  continueTargets: PendingJumpTarget[];
+  /** blocks used to handle break/continue (for current loop) */
+  breakTarget: BasicBlock | null;
+  continueTarget: BasicBlock | null;
 
   /** convenience helpers */
-  createBlock: (kind?: BlockKind) => BlockId;
-  addStmt: (node: t.Statement) => void;
-  addEdge: (from: BlockId, to: BlockId) => void;
-  splitCurrent: () => BlockId;
+  createBlock: (blockName?: string) => BasicBlock;
+  addStatement: (block: BasicBlock | null, node: t.Statement) => void;
+  addSuccessEdge: (from: BasicBlock | null, to: BasicBlock | null) => void;
+  addFalseEdge: (from: BasicBlock | null, to: BasicBlock | null) => void;
+  addExceptionEdge: (from: BasicBlock | null, to: BasicBlock | null) => void;
+  splitCurrent: () => BasicBlock;
 }

@@ -17,69 +17,77 @@
       VariableDeclaration,
   - Next to implement: 
       Labelled statements,
-      Try/Catch/Finally
+      Try/Catch/Finally,
+      Complex Expressions (?:, !! operator, etc.)
 */
 
 import * as t from "@babel/types";
-import { BlockId } from "./Models/BlockId";
-import { BlockKind } from "./Models/BlockKind";
-import { Block } from "./Models/BasicBlock";
+import { BasicBlock } from "./Models/BasicBlock";
 import { CFG } from "./Models/Cfg";
 import { TraversalContext } from "./Models/TraversalContext";
 
-function makeEmptyBlock(id: BlockId, kind: BlockKind = "normal"): Block {
-  return { id, kind, stmts: [], succs: [], preds: [] };
+function makeEmptyBlock(blockName: string = ""): BasicBlock {
+  return {
+    statements: [],
+    expressions: [],
+    name: blockName,
+    successExit: null,
+    falseExit: null,
+    exceptionExit: null,
+  };
 }
 
 function initCFG(): CFG {
-  const blocks = new Map<BlockId, Block>();
-  const entry = 0;
-  const exit = 1;
-  blocks.set(entry, makeEmptyBlock(entry, "entry"));
-  blocks.set(exit, makeEmptyBlock(exit, "exit"));
-  return { entry, exit, blocks };
+  const entry = makeEmptyBlock("entry");
+  const exit = makeEmptyBlock("exit");
+  return { entry, exit };
 }
 
 export function createTraversalContext(): TraversalContext {
   const cfg = initCFG();
   const ctx: Partial<TraversalContext> = {};
-  let nextId = 2;
 
-  function createBlock(kind: BlockKind = "normal") {
-    const id = nextId++;
-    cfg.blocks.set(id, makeEmptyBlock(id, kind));
-    return id;
+  function createBlock(blockName: string = ""): BasicBlock {
+    return makeEmptyBlock(blockName);
   }
 
-  function addEdge(from: BlockId, to: BlockId) {
-    const bFrom = cfg.blocks.get(from);
-    const bTo = cfg.blocks.get(to);
-    if (!bFrom || !bTo) throw new Error(`invalid edge ${from} -> ${to}`);
-    bFrom.succs.push(to);
-    bTo.preds.push(from);
+  function addSuccessEdge(from: BasicBlock | null, to: BasicBlock | null) {
+    if (!from || !to) throw new Error(`invalid edge ${from} -> ${to}`);
+    from.successExit = to;
   }
 
-  function addStmt(node: t.Statement) {
-    const b = cfg.blocks.get(ctx.cur!);
-    if (!b) throw new Error("current block missing");
-    b.stmts.push(node);
+  function addFalseEdge(from: BasicBlock | null, to: BasicBlock | null) {
+    if (!from || !to) throw new Error(`invalid edge ${from} -> ${to}`);
+    from.falseExit = to;
   }
 
-  function splitCurrent() {
-    const newId = createBlock("normal");
-    addEdge(ctx.cur!, newId);
-    ctx.cur = newId;
-    return newId;
+  function addExceptionEdge(from: BasicBlock | null, to: BasicBlock | null) {
+    if (!from || !to) throw new Error(`invalid edge ${from} -> ${to}`);
+    from.exceptionExit = to;
+  }
+
+  function addStatement(block: BasicBlock | null, node: t.Statement) {
+    if (!block) throw new Error("current block missing");
+    block.statements.push(node);
+  }
+
+  function splitCurrent(): BasicBlock {
+    const newBlock = createBlock();
+    addSuccessEdge(ctx.currentBlock!, newBlock);
+    ctx.currentBlock = newBlock;
+    return newBlock;
   }
 
   ctx.cfg = cfg;
-  ctx.cur = cfg.entry;
-  ctx.nextId = nextId;
-  ctx.breakTargets = [];
-  ctx.continueTargets = [];
+  ctx.currentBlock = cfg.entry;
+  ctx.nextBlock = null; //may need to change
+  ctx.breakTarget = null;
+  ctx.continueTarget = null;
   ctx.createBlock = createBlock;
-  ctx.addStmt = addStmt;
-  ctx.addEdge = addEdge;
+  ctx.addStatement = addStatement;
+  ctx.addSuccessEdge = addSuccessEdge;
+  ctx.addFalseEdge = addFalseEdge;
+  ctx.addExceptionEdge = addExceptionEdge;
   ctx.splitCurrent = splitCurrent;
 
   return ctx as TraversalContext;
@@ -88,16 +96,16 @@ export function createTraversalContext(): TraversalContext {
 export function buildCFG(programNode: t.Program): CFG {
   const ctx = createTraversalContext();
 
-  const first = ctx.createBlock("normal");
-  ctx.addEdge(ctx.cfg.entry, first);
-  ctx.cur = first;
+  const firstBlock = ctx.createBlock();
+  ctx.addSuccessEdge(ctx.cfg.entry, firstBlock);
+  ctx.currentBlock = firstBlock;
 
   for (const stmt of programNode.body || []) {
     visitStatement(stmt, ctx);
   }
 
-  if (!ctx.cfg.blocks.get(ctx.cur!)!.succs.length) {
-    ctx.addEdge(ctx.cur!, ctx.cfg.exit);
+  if (!ctx.currentBlock.successExit) {
+    ctx.addSuccessEdge(ctx.currentBlock!, ctx.cfg.exit);
   }
 
   return ctx.cfg;
@@ -113,7 +121,7 @@ function visitStatement(node: t.Statement, ctx: TraversalContext) {
 
     case "ExpressionStatement":
     case "VariableDeclaration":
-      ctx.addStmt(node);
+      ctx.addStatement(ctx.currentBlock, node);
       return;
 
     case "IfStatement":
@@ -129,160 +137,201 @@ function visitStatement(node: t.Statement, ctx: TraversalContext) {
       return;
 
     case "ReturnStatement":
-      ctx.addStmt(node);
-      ctx.addEdge(ctx.cur, ctx.cfg.exit);
-      const afterRet = ctx.createBlock("normal");
-      ctx.cur = afterRet;
+      ctx.addStatement(ctx.currentBlock, node);
+      ctx.addSuccessEdge(ctx.currentBlock, ctx.cfg.exit);
+      const afterRet = ctx.createBlock();
+      ctx.currentBlock = afterRet;
       return;
 
-    case "BreakStatement":
-      ctx.addStmt(node);
-      if (ctx.breakTargets.length === 0) {
-        ctx.addEdge(ctx.cur, ctx.cfg.exit);
-      } else {
-        const target = ctx.breakTargets[ctx.breakTargets.length - 1].target;
-        ctx.addEdge(ctx.cur, target);
-      }
-      ctx.cur = ctx.createBlock("normal");
+    case "BreakStatement": //need to rewrite this to ctx stacks
+      // ctx.addStatement(ctx.currentBlock, node);
+      // if (ctx.breakTarget === null) {
+      //   ctx.addFalseEdge(ctx.currentBlock, ctx.cfg.exit);
+      // } else {
+      //   const target = ctx.breakTargets[ctx.breakTargets.length - 1].target;
+      //   ctx.addEdge(ctx.currentBlock, target);
+      // }
+      // ctx.currentBlock = ctx.createBlock();
       return;
 
-    case "ContinueStatement":
-      ctx.addStmt(node);
-      if (ctx.continueTargets.length === 0) {
-        ctx.addEdge(ctx.cur, ctx.cfg.exit);
-      } else {
-        const target =
-          ctx.continueTargets[ctx.continueTargets.length - 1].target;
-        ctx.addEdge(ctx.cur, target);
-      }
-      ctx.cur = ctx.createBlock("normal");
+    case "ContinueStatement": //need to rewrite this to ctx stacks
+      // ctx.addStatement(ctx.currentBlock, node);
+      // if (ctx.continueTarget === null) {
+      //   ctx.addSuccessEdge(ctx.currentBlock, ctx.cfg.exit);
+      // } else {
+      //   const target =
+      //     ctx.continueTargets[ctx.continueTargets.length - 1].target;
+      //   ctx.addEdge(ctx.currentBlock, target);
+      // }
+      // ctx.currentBlock = ctx.createBlock();
       return;
 
-    case "FunctionDeclaration":
-      ctx.addStmt(node);
+    case "FunctionDeclaration": //need to rewrite this to ctx stacks
+      ctx.addStatement(ctx.currentBlock, node);
       return;
 
-    default:
-      ctx.addStmt(node);
+    default: //need to rewrite this
+      ctx.addStatement(ctx.currentBlock, node);
   }
 }
 
 function visitIf(node: t.IfStatement, ctx: TraversalContext) {
-  const condBlock = ctx.createBlock("condition");
-  ctx.addEdge(ctx.cur, condBlock);
-  const condB = ctx.cfg.blocks.get(condBlock)!;
-  condB.condition = node.test;
+  const condBlock = ctx.createBlock();
+  ctx.addSuccessEdge(ctx.currentBlock, condBlock);
+  condBlock.statements.push(node);
 
-  const thenBlock = ctx.createBlock("normal");
-  ctx.addEdge(condBlock, thenBlock);
+  const thenBlock = ctx.createBlock();
+  ctx.addSuccessEdge(condBlock, thenBlock);
 
-  const elseBlock = node.alternate ? ctx.createBlock("normal") : null;
-  if (elseBlock) ctx.addEdge(condBlock, elseBlock);
+  const elseBlock = node.alternate ? ctx.createBlock() : null;
+  if (elseBlock) ctx.addFalseEdge(condBlock, elseBlock);
 
-  const after = ctx.createBlock("normal");
+  const after = ctx.createBlock();
 
-  ctx.cur = thenBlock;
+  ctx.currentBlock = thenBlock;
   visitStatement(node.consequent as t.Statement, ctx);
-  if (!ctx.cfg.blocks.get(ctx.cur)!.succs.length) ctx.addEdge(ctx.cur, after);
+  if (!ctx.currentBlock.successExit)
+    ctx.addSuccessEdge(ctx.currentBlock, after);
 
   if (elseBlock) {
-    ctx.cur = elseBlock;
+    ctx.currentBlock = elseBlock;
     visitStatement(node.alternate as t.Statement, ctx);
-    if (!ctx.cfg.blocks.get(ctx.cur)!.succs.length) ctx.addEdge(ctx.cur, after);
+    if (!ctx.currentBlock.successExit)
+      ctx.addSuccessEdge(ctx.currentBlock, after);
   } else {
-    ctx.addEdge(condBlock, after);
+    ctx.addSuccessEdge(condBlock, after);
   }
 
-  ctx.cur = after;
+  ctx.currentBlock = after;
 }
 
 function visitWhile(node: t.WhileStatement, ctx: TraversalContext) {
-  const condBlock = ctx.createBlock("condition");
-  ctx.addEdge(ctx.cur, condBlock);
-  const bodyBlock = ctx.createBlock("normal");
-  const after = ctx.createBlock("normal");
+  const condBlock = ctx.createBlock();
+  ctx.addSuccessEdge(ctx.currentBlock, condBlock);
+  const bodyBlock = ctx.createBlock();
+  const after = ctx.createBlock();
 
-  ctx.cfg.blocks.get(condBlock)!.condition = node.test;
-  ctx.addEdge(condBlock, bodyBlock);
-  ctx.addEdge(condBlock, after);
+  condBlock.statements.push(node);
+  ctx.addSuccessEdge(condBlock, bodyBlock);
+  ctx.addSuccessEdge(condBlock, after); //need to change it later for other type of edge
 
-  ctx.breakTargets.push({ target: after });
-  ctx.continueTargets.push({ target: condBlock });
+  ctx.breakTarget = after;
+  ctx.continueTarget = condBlock;
 
-  ctx.cur = bodyBlock;
+  ctx.currentBlock = bodyBlock;
   visitStatement(node.body as t.Statement, ctx);
-  if (!ctx.cfg.blocks.get(ctx.cur)!.succs.length)
-    ctx.addEdge(ctx.cur, condBlock);
+  if (!ctx.currentBlock.successExit)
+    ctx.addSuccessEdge(ctx.currentBlock, condBlock);
 
-  ctx.breakTargets.pop();
-  ctx.continueTargets.pop();
+  //need to rewrite this to ctx stacks
+  // ctx.breakTargets.pop();
+  // ctx.continueTargets.pop();
 
-  ctx.cur = after;
+  ctx.currentBlock = after;
 }
 
 function visitFor(node: t.ForStatement, ctx: TraversalContext) {
   if (node.init) {
-    if (t.isVariableDeclaration(node.init)) ctx.addStmt(node.init);
-    else ctx.addStmt(t.expressionStatement(node.init as t.Expression));
+    if (t.isVariableDeclaration(node.init)) ctx.addStatement(ctx.currentBlock, node.init);
+    else ctx.addStatement(ctx.currentBlock, t.expressionStatement(node.init as t.Expression));
   }
 
-  const condBlock = ctx.createBlock("condition");
-  ctx.addEdge(ctx.cur, condBlock);
-  ctx.cfg.blocks.get(condBlock)!.condition =
-    node.test || t.booleanLiteral(true);
+  const condBlock = ctx.createBlock();
+  ctx.addSuccessEdge(ctx.currentBlock, condBlock);
+  condBlock.expressions[0] = node.test || t.booleanLiteral(true);
 
-  const bodyBlock = ctx.createBlock("normal");
-  const after = ctx.createBlock("normal");
-  const updateBlock = node.update ? ctx.createBlock("normal") : condBlock;
+  const bodyBlock = ctx.createBlock();
+  const after = ctx.createBlock();
+  const updateBlock = node.update ? ctx.createBlock() : condBlock;
 
-  ctx.addEdge(condBlock, bodyBlock);
-  ctx.addEdge(condBlock, after);
+  ctx.addSuccessEdge(condBlock, bodyBlock);
+  ctx.addFalseEdge(condBlock, after); //need to change it later for other type of edg
 
-  ctx.breakTargets.push({ target: after });
-  ctx.continueTargets.push({ target: updateBlock });
+  ctx.breakTarget = after;
+  ctx.continueTarget = updateBlock;
 
-  ctx.cur = bodyBlock;
+  ctx.currentBlock = bodyBlock;
   visitStatement(node.body as t.Statement, ctx);
-  if (!ctx.cfg.blocks.get(ctx.cur)!.succs.length) {
-    if (node.update) ctx.addEdge(ctx.cur, updateBlock);
-    else ctx.addEdge(ctx.cur, condBlock);
+  if (!ctx.currentBlock.successExit) {
+    if (node.update) ctx.addSuccessEdge(ctx.currentBlock, updateBlock);
+    else ctx.addSuccessEdge(ctx.currentBlock, condBlock);
   }
 
   if (node.update) {
-    ctx.cur = updateBlock;
-    ctx.addStmt(t.expressionStatement(node.update as t.Expression));
-    ctx.addEdge(updateBlock, condBlock);
+    ctx.currentBlock = updateBlock;
+    ctx.addStatement(ctx.currentBlock, t.expressionStatement(node.update as t.Expression));
+    ctx.addSuccessEdge(updateBlock, condBlock);
   }
 
-  ctx.breakTargets.pop();
-  ctx.continueTargets.pop();
+  //need to change it later for other type of edg
+  // ctx.breakTargets.pop();
+  // ctx.continueTargets.pop();
 
-  ctx.cur = after;
+  ctx.currentBlock = after;
 }
 
+/** Converts a CFG into a plain JSON-like object */
 export function cfgToObject(cfg: CFG) {
+  const visited = new Set<BasicBlock>();
   const blocks: any[] = [];
-  for (const [, b] of cfg.blocks) {
+
+  function visit(block: BasicBlock | null) {
+    if (!block || visited.has(block)) return;
+    visited.add(block);
+
     blocks.push({
-      id: b.id,
-      kind: b.kind,
-      stmts: b.stmts.map((s: any) => s.type),
-      cond: (b.condition as any)?.type,
-      succs: b.succs,
-      preds: b.preds,
+      name: block.name,
+      statements: block.statements.map((s: t.Statement) => s.type),
+      expressions: block.expressions.map((e: t.Expression) => e.type),
+      exits: {
+        successExit: block.successExit?.name ?? null,
+        falseExit: block.falseExit?.name ?? null,
+        exceptionExit: block.exceptionExit?.name ?? null,
+      },
     });
+
+    // Recurse on exits
+    visit(block.successExit ?? null);
+    visit(block.falseExit ?? null);
+    visit(block.exceptionExit ?? null);
   }
-  return { entry: cfg.entry, exit: cfg.exit, blocks };
+
+  visit(cfg.entry);
+
+  return {
+    entry: cfg.entry.name,
+    exit: cfg.exit.name,
+    blocks,
+  };
 }
 
-export function cfgToDot(cfg: ReturnType<typeof buildCFG>): string {
+/** Converts a CFG into DOT format for Graphviz */
+export function cfgToDot(cfg: CFG): string {
   let dot = "digraph CFG {\n";
-  for (const [, block] of cfg.blocks) {
-    dot += `  ${block.id} [label="${block.kind} #${block.id}"];\n`;
-    for (const succ of block.succs) {
-      dot += `  ${block.id} -> ${succ};\n`;
+  const visited = new Set<BasicBlock>();
+
+  function visit(block: BasicBlock | null) {
+    if (!block || visited.has(block)) return;
+    visited.add(block);
+
+    const label = block.name ?? "unnamed";
+    dot += `  "${label}" [label="${label}"];\n`;
+
+    if (block.successExit) {
+      dot += `  "${label}" -> "${block.successExit.name ?? "unnamed"}" [label="success"];\n`;
+      visit(block.successExit);
+    }
+    if (block.falseExit) {
+      dot += `  "${label}" -> "${block.falseExit.name ?? "unnamed"}" [label="false"];\n`;
+      visit(block.falseExit);
+    }
+    if (block.exceptionExit) {
+      dot += `  "${label}" -> "${block.exceptionExit.name ?? "unnamed"}" [label="exception"];\n`;
+      visit(block.exceptionExit);
     }
   }
+
+  visit(cfg.entry);
   dot += "}\n";
   return dot;
 }
