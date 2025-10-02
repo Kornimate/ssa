@@ -1,5 +1,6 @@
 import { parse } from "@babel/parser";
-import { buildCFG, cfgToObject, cfgToDot } from "./cfgTransform";
+import { buildCFG } from "./cfgTransform";
+import { cfgToObject, cfgToDot } from './Services/Traversals';
 import fs from "fs";
 import path from "path";
 

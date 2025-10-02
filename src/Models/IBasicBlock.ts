@@ -1,6 +1,6 @@
 import * as t from "@babel/types";
 
-export interface BasicBlock {
+export interface IBasicBlock {
   /** AST statements and expressions belonging to the block */
   statements: t.Statement[];
   expressions: t.Expression[];
@@ -9,7 +9,7 @@ export interface BasicBlock {
   name: string | null;
 
   /** Different exit types from blocks */
-  successExit?: BasicBlock | null;
-  falseExit?: BasicBlock | null;
-  exceptionExit?: BasicBlock | null;
+  successExit?: IBasicBlock | null;
+  falseExit?: IBasicBlock | null;
+  exceptionExit?: IBasicBlock | null;
 }
