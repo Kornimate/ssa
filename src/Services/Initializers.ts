@@ -1,7 +1,9 @@
-import { IBasicBlock } from "../Models/IBasicBlock";
-import { ICFG } from "../Models/ICfg";
-import { ITraversalContext } from "../Models/ITraversalContext";
-import * as initializers from "./TraversalContext";
+import { IBasicBlock } from "../models/IBasicBlock";
+import { ICFG } from "../models/ICfg";
+import { ITraversalContext } from "../models/ITraversalContext";
+import { ITraversalContextNode } from "../models/ITraversalContextNode";
+import * as nodeInitializers from "./TraversalContextNode";
+import * as contextInitializers from "./TraversalContext";
 
 export function createEmptyBlock(blockName: string = ""): IBasicBlock {
   return {
@@ -20,21 +22,30 @@ export function createCFG(): ICFG {
   return { entry, exit };
 }
 
-export function createTraversalContext(): ITraversalContext {
+export function createTraversalNode(): ITraversalContextNode {
   const cfg = createCFG();
-  const ctx: Partial<ITraversalContext> = {};
+  const node: Partial<ITraversalContextNode> = {};
 
-  ctx.cfg = cfg;
-  ctx.currentBlock = cfg.entry;
-  ctx.nextBlock = null; //may need to change
-  ctx.breakTarget = null;
-  ctx.continueTarget = null;
-  ctx.createBlock = initializers.createBlock;
-  ctx.addStatement = initializers.addStatement;
-  ctx.addSuccessEdge = initializers.addSuccessEdge;
-  ctx.addFalseEdge = initializers.addFalseEdge;
-  ctx.addExceptionEdge = initializers.addExceptionEdge;
-  ctx.splitCurrent = initializers.splitCurrent;
+  node.currentBlock = cfg.entry;
+  node.breakTarget = null;
+  node.continueTarget = null;
+  node.createBlock = nodeInitializers.createBlock;
+  node.addStatement = nodeInitializers.addStatement;
+  node.addSuccessEdge = nodeInitializers.addSuccessEdge;
+  node.addFalseEdge = nodeInitializers.addFalseEdge;
+  node.addExceptionEdge = nodeInitializers.addExceptionEdge;
+  node.splitCurrent = nodeInitializers.splitCurrent;
+
+  return node as ITraversalContextNode;
+}
+
+export function createTraversalContext(): ITraversalContext {
+  
+  const ctx : Partial<ITraversalContext> = {};
+  
+  ctx.cfg = createCFG();
+  ctx.contexts = [createTraversalNode()];
+  ctx.current = contextInitializers.current;
 
   return ctx as ITraversalContext;
 }

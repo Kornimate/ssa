@@ -1,5 +1,5 @@
-import { IBasicBlock } from "../Models/IBasicBlock";
-import { ICFG } from "../Models/ICfg";
+import { IBasicBlock } from "../models/IBasicBlock";
+import { ICFG } from "../models/ICfg";
 import * as t from '@babel/types';
 
 /** Converts a CFG into a plain JSON-like object */
