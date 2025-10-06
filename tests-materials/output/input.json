@@ -6,7 +6,7 @@
       "name": "entry",
       "statements": [],
       "exits": {
-        "successExit": null,
+        "successExit": "#1",
         "falseExit": null,
         "exceptionExit": null
       }
@@ -15,13 +15,10 @@
       "name": "#1",
       "statements": [
         "VariableDeclaration",
-        "ExpressionStatement",
-        "VariableDeclaration",
-        "ExpressionStatement",
-        "ExpressionStatement"
+        "VariableDeclaration"
       ],
       "exits": {
-        "successExit": null,
+        "successExit": "#2",
         "falseExit": null,
         "exceptionExit": null
       }
@@ -29,11 +26,11 @@
     {
       "name": "#2",
       "statements": [
-        "IfStatement"
+        "ForStatement"
       ],
       "exits": {
-        "successExit": null,
-        "falseExit": null,
+        "successExit": "#3",
+        "falseExit": "#5",
         "exceptionExit": null
       }
     },
@@ -43,7 +40,7 @@
         "ExpressionStatement"
       ],
       "exits": {
-        "successExit": null,
+        "successExit": "#4",
         "falseExit": null,
         "exceptionExit": null
       }
@@ -51,47 +48,16 @@
     {
       "name": "#4",
       "statements": [
-        "VariableDeclaration"
+        "ExpressionStatement"
       ],
       "exits": {
-        "successExit": null,
+        "successExit": "#2",
         "falseExit": null,
         "exceptionExit": null
       }
     },
     {
       "name": "#5",
-      "statements": [],
-      "exits": {
-        "successExit": null,
-        "falseExit": null,
-        "exceptionExit": null
-      }
-    },
-    {
-      "name": "#6",
-      "statements": [
-        "ExpressionStatement"
-      ],
-      "exits": {
-        "successExit": null,
-        "falseExit": null,
-        "exceptionExit": null
-      }
-    },
-    {
-      "name": "#7",
-      "statements": [
-        "ExpressionStatement"
-      ],
-      "exits": {
-        "successExit": null,
-        "falseExit": null,
-        "exceptionExit": null
-      }
-    },
-    {
-      "name": "#8",
       "statements": [],
       "exits": {
         "successExit": "exit",
@@ -102,17 +68,6 @@
     {
       "name": "exit",
       "statements": [],
-      "exits": {
-        "successExit": null,
-        "falseExit": null,
-        "exceptionExit": null
-      }
-    },
-    {
-      "name": "#9",
-      "statements": [
-        "ExpressionStatement"
-      ],
       "exits": {
         "successExit": null,
         "falseExit": null,

@@ -1,6 +1,6 @@
 import { parse } from "@babel/parser";
 import { buildCFG } from "./cfgTransform";
-import { cfgToObject, cfgToDot } from "./services/VisualizationTraversals";
+import { visualizeCfg } from "./services/VisualizationTraversals";
 import fs from "fs";
 import path from "path";
 
@@ -13,9 +13,11 @@ export function useCfg(fileName: string = "input") {
 
   const cfg = buildCFG(ast.program);
 
+  const visualizations = visualizeCfg(cfg);
+
   const graphFilePath = path.resolve(`./tests-materials/output/graph.dot`);
 
-  fs.writeFileSync(graphFilePath, cfgToDot(cfg), "utf-8");
+  fs.writeFileSync(graphFilePath, visualizations.dot, "utf-8");
 
   const jsonFilePath = path.resolve(
     `./tests-materials/output/${fileName}.json`
@@ -23,7 +25,7 @@ export function useCfg(fileName: string = "input") {
 
   fs.writeFileSync(
     jsonFilePath,
-    JSON.stringify(cfgToObject(cfg), null, 2),
+    JSON.stringify(visualizations.object, null, 2),
     "utf-8"
   );
 }

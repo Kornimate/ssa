@@ -218,7 +218,7 @@ function visitFor(node: t.ForStatement, ctx: ITraversalContext) {
   const activeSubContext = ctx.current()!;
 
   // check if variable is declared in for statement
-  if (node.init) {
+  if (node.init) { //this is not in correct place
     if (t.isVariableDeclaration(node.init))
       activeSubContext.addStatement(activeSubContext.currentBlock, node.init);
     else
@@ -231,6 +231,8 @@ function visitFor(node: t.ForStatement, ctx: ITraversalContext) {
   // create conditional block
   const condBlock = activeSubContext.createBlock();
   activeSubContext.addSuccessEdge(activeSubContext.currentBlock, condBlock);
+  activeSubContext.addStatement(condBlock, node);
+
 
   // create body block
   const bodyBlock = activeSubContext.createBlock();
