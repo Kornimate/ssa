@@ -1,12 +1,11 @@
 import { parse } from "@babel/parser";
 import { buildCFG } from "./cfgTransform";
-import { cfgToObject, cfgToDot } from './services/VisualizationTraversals';
+import { cfgToObject, cfgToDot } from "./services/VisualizationTraversals";
 import fs from "fs";
 import path from "path";
 
 export function useCfg(fileName: string = "input") {
-
-    const filePath = path.resolve(`./TestMaterial/Input/${fileName}.ts`);
+  const filePath = path.resolve(`./tests-materials/input/${fileName}.ts`);
   const ast = parse(fs.readFileSync(filePath, "utf-8"), {
     sourceType: "module",
     plugins: ["typescript"],
@@ -14,14 +13,12 @@ export function useCfg(fileName: string = "input") {
 
   const cfg = buildCFG(ast.program);
 
-  const graphFilePath = path.resolve(
-    `./TestMaterial/Output/graph.dot`
-  );
+  const graphFilePath = path.resolve(`./tests-materials/output/graph.dot`);
 
   fs.writeFileSync(graphFilePath, cfgToDot(cfg), "utf-8");
 
   const jsonFilePath = path.resolve(
-    `./TestMaterial/Output/${fileName}.json`
+    `./tests-materials/output/${fileName}.json`
   );
 
   fs.writeFileSync(

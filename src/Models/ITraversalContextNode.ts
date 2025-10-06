@@ -6,8 +6,8 @@ export interface ITraversalContextNode {
   currentBlock: IBasicBlock | null;
 
   /** blocks used to handle break/continue (for current loop) */
-  breakTarget: IBasicBlock | null;
-  continueTarget: IBasicBlock | null;
+  breakTargets: IBasicBlock[] | null;
+  continueTargets: IBasicBlock[] | null;
 
   /** convenience helpers */
   createBlock: (blockName?: string) => IBasicBlock;

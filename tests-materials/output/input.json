@@ -1,0 +1,123 @@
+{
+  "entry": "entry",
+  "exit": "exit",
+  "blocks": [
+    {
+      "name": "entry",
+      "statements": [],
+      "exits": {
+        "successExit": null,
+        "falseExit": null,
+        "exceptionExit": null
+      }
+    },
+    {
+      "name": "#1",
+      "statements": [
+        "VariableDeclaration",
+        "ExpressionStatement",
+        "VariableDeclaration",
+        "ExpressionStatement",
+        "ExpressionStatement"
+      ],
+      "exits": {
+        "successExit": null,
+        "falseExit": null,
+        "exceptionExit": null
+      }
+    },
+    {
+      "name": "#2",
+      "statements": [
+        "IfStatement"
+      ],
+      "exits": {
+        "successExit": null,
+        "falseExit": null,
+        "exceptionExit": null
+      }
+    },
+    {
+      "name": "#3",
+      "statements": [
+        "ExpressionStatement"
+      ],
+      "exits": {
+        "successExit": null,
+        "falseExit": null,
+        "exceptionExit": null
+      }
+    },
+    {
+      "name": "#4",
+      "statements": [
+        "VariableDeclaration"
+      ],
+      "exits": {
+        "successExit": null,
+        "falseExit": null,
+        "exceptionExit": null
+      }
+    },
+    {
+      "name": "#5",
+      "statements": [],
+      "exits": {
+        "successExit": null,
+        "falseExit": null,
+        "exceptionExit": null
+      }
+    },
+    {
+      "name": "#6",
+      "statements": [
+        "ExpressionStatement"
+      ],
+      "exits": {
+        "successExit": null,
+        "falseExit": null,
+        "exceptionExit": null
+      }
+    },
+    {
+      "name": "#7",
+      "statements": [
+        "ExpressionStatement"
+      ],
+      "exits": {
+        "successExit": null,
+        "falseExit": null,
+        "exceptionExit": null
+      }
+    },
+    {
+      "name": "#8",
+      "statements": [],
+      "exits": {
+        "successExit": "exit",
+        "falseExit": null,
+        "exceptionExit": null
+      }
+    },
+    {
+      "name": "exit",
+      "statements": [],
+      "exits": {
+        "successExit": null,
+        "falseExit": null,
+        "exceptionExit": null
+      }
+    },
+    {
+      "name": "#9",
+      "statements": [
+        "ExpressionStatement"
+      ],
+      "exits": {
+        "successExit": null,
+        "falseExit": null,
+        "exceptionExit": null
+      }
+    }
+  ]
+}

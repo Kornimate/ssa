@@ -1,10 +1,12 @@
 import { IBasicBlock } from "../models/IBasicBlock";
 import { ICFG } from "../models/ICfg";
-import * as t from '@babel/types';
+import * as t from "@babel/types";
 
 /** Converts a CFG into a plain JSON-like object */
 export function cfgToObject(cfg: ICFG) {
+  let counter = 0;
   const visited = new Set<IBasicBlock>();
+  const names = new Map<IBasicBlock, string>();
   const blocks: any[] = [];
 
   function visit(block: IBasicBlock | null) {
@@ -12,9 +14,8 @@ export function cfgToObject(cfg: ICFG) {
     visited.add(block);
 
     blocks.push({
-      name: block.name,
+      name: getBlockName(block),
       statements: block.statements.map((s: t.Statement) => s.type),
-      expressions: block.expressions.map((e: t.Expression) => e.type),
       exits: {
         successExit: block.successExit?.name ?? null,
         falseExit: block.falseExit?.name ?? null,
@@ -30,6 +31,13 @@ export function cfgToObject(cfg: ICFG) {
 
   visit(cfg.entry);
 
+  function getBlockName(block: IBasicBlock): string {
+    if (!names.has(block))
+      names.set(block, block.name === null ? `#${++counter}` : block.name);
+
+    return names.get(block)!;
+  }
+
   return {
     entry: cfg.entry.name,
     exit: cfg.exit.name,
@@ -39,28 +47,43 @@ export function cfgToObject(cfg: ICFG) {
 
 /** Converts a CFG into DOT format for Graphviz */
 export function cfgToDot(cfg: ICFG): string {
+  let counter = 0;
   let dot = "digraph CFG {\n";
   const visited = new Set<IBasicBlock>();
+  const names = new Map<IBasicBlock, string>();
 
   function visit(block: IBasicBlock | null) {
     if (!block || visited.has(block)) return;
     visited.add(block);
 
-    const label = block.name ?? "unnamed";
+    const label = getBlockName(block);
     dot += `  "${label}" [label="${label}"];\n`;
 
     if (block.successExit) {
-      dot += `  "${label}" -> "${block.successExit.name ?? "unnamed"}" [label="success"];\n`;
+      dot += `  "${label}" -> "${getBlockName(
+        block.successExit
+      )}" [label="success"];\n`;
       visit(block.successExit);
     }
     if (block.falseExit) {
-      dot += `  "${label}" -> "${block.falseExit.name ?? "unnamed"}" [label="false"];\n`;
+      dot += `  "${label}" -> "${getBlockName(
+        block.falseExit
+      )}" [label="false"];\n`;
       visit(block.falseExit);
     }
     if (block.exceptionExit) {
-      dot += `  "${label}" -> "${block.exceptionExit.name ?? "unnamed"}" [label="exception"];\n`;
+      dot += `  "${label}" -> "${getBlockName(
+        block.exceptionExit
+      )}" [label="exception"];\n`;
       visit(block.exceptionExit);
     }
+  }
+
+  function getBlockName(block: IBasicBlock): string {
+    if (!names.has(block))
+      names.set(block, block.name === null ? `#${++counter}` : block.name);
+
+    return names.get(block)!;
   }
 
   visit(cfg.entry);

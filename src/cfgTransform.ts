@@ -23,7 +23,10 @@
 
 import { ICFG } from "./models/ICfg";
 import { ITraversalContextNode } from "./models/ITraversalContextNode";
-import { createTraversalContext, createTraversalNode } from "./services/Initializers";
+import {
+  createTraversalContext,
+  createTraversalNode,
+} from "./services/Initializers";
 import { ITraversalContext } from "./models/ITraversalContext";
 import * as t from "@babel/types";
 
@@ -40,7 +43,10 @@ export function buildCFG(programNode: t.Program): ICFG {
   }
 
   if (!activeSubContext.currentBlock.successExit) {
-    activeSubContext.addSuccessEdge(activeSubContext.currentBlock!, ctx.cfg.exit);
+    activeSubContext.addSuccessEdge(
+      activeSubContext.currentBlock!,
+      ctx.cfg.exit
+    );
   }
 
   return ctx.cfg;
@@ -58,49 +64,31 @@ function visitStatement(node: t.Statement, ctx: ITraversalContext) {
 
     case "ExpressionStatement":
     case "VariableDeclaration":
-      visitExpressionAndVariableDeclaration(node, activeSubContext)
+      visitExpressionAndVariableDeclaration(node, activeSubContext);
       return;
 
     case "IfStatement":
-      visitIf(node, activeSubContext);
+      visitIf(node, ctx);
       return;
 
     case "WhileStatement":
-      visitWhile(node, activeSubContext);
+      visitWhile(node, ctx);
       return;
 
     case "ForStatement":
-      visitFor(node, activeSubContext);
+      visitFor(node, ctx);
       return;
 
     case "ReturnStatement":
-      // activeSubContext.addStatement(activeSubContext.currentBlock, node);
-      // activeSubContext.addSuccessEdge(activeSubContext.currentBlock, activeSubContext.cfg.exit);
-      // const afterRet = activeSubContext.createBlock();
-      // activeSubContext.currentBlock = afterRet;
+      visitReturn(node, ctx);
       return;
 
-    case "BreakStatement": //need to rewrite this to ctx stacks
-      // ctx.addStatement(ctx.currentBlock, node);
-      // if (ctx.breakTarget === null) {
-      //   ctx.addFalseEdge(ctx.currentBlock, ctx.cfg.exit);
-      // } else {
-      //   const target = ctx.breakTargets[ctx.breakTargets.length - 1].target;
-      //   ctx.addEdge(ctx.currentBlock, target);
-      // }
-      // ctx.currentBlock = ctx.createBlock();
+    case "BreakStatement":
+      visitBreak(node, ctx);
       return;
 
-    case "ContinueStatement": //need to rewrite this to ctx stacks
-      // ctx.addStatement(ctx.currentBlock, node);
-      // if (ctx.continueTarget === null) {
-      //   ctx.addSuccessEdge(ctx.currentBlock, ctx.cfg.exit);
-      // } else {
-      //   const target =
-      //     ctx.continueTargets[ctx.continueTargets.length - 1].target;
-      //   ctx.addEdge(ctx.currentBlock, target);
-      // }
-      // ctx.currentBlock = ctx.createBlock();
+    case "ContinueStatement":
+      visitContinue(node, ctx);
       return;
 
     case "FunctionDeclaration": //need to rewrite this to ctx stacks
@@ -112,12 +100,52 @@ function visitStatement(node: t.Statement, ctx: ITraversalContext) {
   }
 }
 
-function visitBlock(node: t.BlockStatement, ctx: ITraversalContext){
+function visitBlock(node: t.BlockStatement, ctx: ITraversalContext) {
   for (const s of node.body) visitStatement(s, ctx);
 }
 
-function visitExpressionAndVariableDeclaration(node: t.Statement, activeSubContext: ITraversalContextNode){
+function visitExpressionAndVariableDeclaration(
+  node: t.Statement,
+  activeSubContext: ITraversalContextNode
+) {
   activeSubContext.addStatement(activeSubContext.currentBlock, node);
+}
+
+function visitReturn(node: t.Statement, ctx: ITraversalContext) {
+  const activeSubContext = ctx.current()!;
+
+  activeSubContext.addStatement(activeSubContext.currentBlock, node);
+  activeSubContext.addSuccessEdge(activeSubContext.currentBlock, ctx.cfg.exit);
+
+  const afterRet = activeSubContext.createBlock();
+  activeSubContext.currentBlock = afterRet;
+}
+
+function visitBreak(node: t.Statement, ctx: ITraversalContext) {
+  const activeSubContext = ctx.current()!;
+  activeSubContext.addStatement(activeSubContext.currentBlock, node);
+
+  if (activeSubContext.breakTargets!.length === 0) {
+    activeSubContext.addFalseEdge(activeSubContext.currentBlock, ctx.cfg.exit); // need to change later
+  } else {
+    const target = activeSubContext.breakTargets?.at(-1)!;
+    activeSubContext.addFalseEdge(activeSubContext.currentBlock, target); // may need to change later
+  }
+
+  activeSubContext.currentBlock = activeSubContext.createBlock();
+}
+
+function visitContinue(node: t.Statement, ctx: ITraversalContext) {
+  const activeSubContext = ctx.current()!;
+
+  activeSubContext.addStatement(activeSubContext.currentBlock, node);
+  if (activeSubContext.continueTargets!.length === 0) {
+    activeSubContext.addFalseEdge(activeSubContext.currentBlock, ctx.cfg.exit); // may need to change
+  } else {
+    const target = activeSubContext.continueTargets?.at(-1)!;
+    activeSubContext.addFalseEdge(activeSubContext.currentBlock, target); // may need to change
+  }
+  activeSubContext.currentBlock = activeSubContext.createBlock();
 }
 
 function visitIf(node: t.IfStatement, ctx: ITraversalContext) {
@@ -136,7 +164,7 @@ function visitIf(node: t.IfStatement, ctx: ITraversalContext) {
   if (elseBlock) activeSubContext.addFalseEdge(condBlock, elseBlock);
 
   const after = activeSubContext.createBlock();
-  
+
   // visit then block
   activeSubContext.currentBlock = thenBlock;
   visitStatement(node.consequent as t.Statement, ctx);
@@ -162,9 +190,9 @@ function visitWhile(node: t.WhileStatement, ctx: ITraversalContext) {
   const activeSubContext = ctx.current()!;
   const condBlock = activeSubContext.createBlock();
   activeSubContext.addSuccessEdge(activeSubContext.currentBlock, condBlock);
-  activeSubContext.continueTarget = condBlock;
+  activeSubContext.continueTargets?.push(condBlock);
   condBlock.statements.push(node);
-  
+
   // create loop body block
   const bodyBlock = activeSubContext.createBlock();
   activeSubContext.addSuccessEdge(condBlock, bodyBlock);
@@ -172,59 +200,77 @@ function visitWhile(node: t.WhileStatement, ctx: ITraversalContext) {
   // create loop after block
   const after = activeSubContext.createBlock();
   activeSubContext.addFalseEdge(condBlock, after);
-  activeSubContext.breakTarget = after;
+  activeSubContext.breakTargets?.push(after);
 
   // visit loop body block
   activeSubContext.currentBlock = bodyBlock;
-  visitStatement(node.body as t.Statement, ctx); //done until here the check ----------------------------------------------------
+  visitStatement(node.body as t.Statement, ctx);
   if (!activeSubContext.currentBlock.successExit)
     activeSubContext.addSuccessEdge(activeSubContext.currentBlock, condBlock);
 
-  //need to rewrite this to ctx stacks
-  // ctx.breakTargets.pop();
-  // ctx.continueTargets.pop();
+  activeSubContext.breakTargets?.pop();
+  activeSubContext.continueTargets?.pop();
 
   activeSubContext.currentBlock = after;
 }
 
-function visitFor(node: t.ForStatement, ctx: ITraversalContextNode) {
+function visitFor(node: t.ForStatement, ctx: ITraversalContext) {
+  const activeSubContext = ctx.current()!;
+
+  // check if variable is declared in for statement
   if (node.init) {
-    if (t.isVariableDeclaration(node.init)) ctx.addStatement(ctx.currentBlock, node.init);
-    else ctx.addStatement(ctx.currentBlock, t.expressionStatement(node.init as t.Expression));
+    if (t.isVariableDeclaration(node.init))
+      activeSubContext.addStatement(activeSubContext.currentBlock, node.init);
+    else
+      activeSubContext.addStatement(
+        activeSubContext.currentBlock,
+        t.expressionStatement(node.init as t.Expression)
+      );
   }
 
-  const condBlock = ctx.createBlock();
-  ctx.addSuccessEdge(ctx.currentBlock, condBlock);
-  condBlock.expressions[0] = node.test || t.booleanLiteral(true);
+  // create conditional block
+  const condBlock = activeSubContext.createBlock();
+  activeSubContext.addSuccessEdge(activeSubContext.currentBlock, condBlock);
 
-  const bodyBlock = ctx.createBlock();
-  const after = ctx.createBlock();
-  const updateBlock = node.update ? ctx.createBlock() : condBlock;
+  // create body block
+  const bodyBlock = activeSubContext.createBlock();
+  activeSubContext.addSuccessEdge(condBlock, bodyBlock);
 
-  ctx.addSuccessEdge(condBlock, bodyBlock);
-  ctx.addFalseEdge(condBlock, after); //need to change it later for other type of edg
+  // create update block
+  const updateBlock = node.update ? activeSubContext.createBlock() : condBlock;
+  activeSubContext.continueTargets?.push(updateBlock);
 
-  ctx.breakTarget = after;
-  ctx.continueTarget = updateBlock;
+  // create after block
+  const after = activeSubContext.createBlock();
+  activeSubContext.addFalseEdge(condBlock, after);
+  activeSubContext.breakTargets?.push(after);
 
-  ctx.currentBlock = bodyBlock;
+  // visit body block
+  activeSubContext.currentBlock = bodyBlock;
   visitStatement(node.body as t.Statement, ctx);
-  if (!ctx.currentBlock.successExit) {
-    if (node.update) ctx.addSuccessEdge(ctx.currentBlock, updateBlock);
-    else ctx.addSuccessEdge(ctx.currentBlock, condBlock);
+  if (!activeSubContext.currentBlock.successExit) {
+    if (node.update)
+      activeSubContext.addSuccessEdge(
+        activeSubContext.currentBlock,
+        updateBlock
+      );
+    else
+      activeSubContext.addSuccessEdge(activeSubContext.currentBlock, condBlock);
   }
 
   if (node.update) {
-    ctx.currentBlock = updateBlock;
-    ctx.addStatement(ctx.currentBlock, t.expressionStatement(node.update as t.Expression));
-    ctx.addSuccessEdge(updateBlock, condBlock);
+    activeSubContext.currentBlock = updateBlock;
+    activeSubContext.addStatement(
+      activeSubContext.currentBlock,
+      t.expressionStatement(node.update as t.Expression)
+    );
+    activeSubContext.addSuccessEdge(updateBlock, condBlock);
   }
 
-  //need to change it later for other type of edg
-  // ctx.breakTargets.pop();
-  // ctx.continueTargets.pop();
+  activeSubContext.breakTargets?.pop();
+  activeSubContext.continueTargets?.pop();
 
-  ctx.currentBlock = after;
+  activeSubContext.currentBlock = after;
 }
 
 export default buildCFG;

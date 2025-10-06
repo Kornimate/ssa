@@ -5,8 +5,8 @@
   "main": "index.js",
   "scripts": {
     "test": "vitest",
-    "ssa": "npx tsc && npx babel ./TestMaterial/Input/input.ts --out-file ./TestMaterial/Output/output.js",
-    "cfg": "npx tsc && node ./dist/src/mainCfg.js && dot -Tpng ./TestMaterial/Output/graph.dot -o ./TestMaterial/Output/graph.png"
+    "ssa": "npx tsc && npx babel ./tests-materials/input/input.ts --out-file ./tests-materials/output/output.js",
+    "cfg": "npx tsc && node ./dist/src/mainCfg.js && dot -Tpng ./tests-materials/output/graph.dot -o ./tests-materials/output/graph.png"
   },
   "repository": {
     "type": "git",
