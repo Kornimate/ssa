@@ -3,8 +3,8 @@ import { IBasicBlock } from "../models/IBasicBlock";
 import { createEmptyBlock } from "./Initializers";
 import * as t from "@babel/types";
 
-export function createBlock(blockName: string | null = null): IBasicBlock {
-  return createEmptyBlock(blockName);
+export function createBlock(): IBasicBlock {
+  return createEmptyBlock();
 }
 
 export function addSuccessEdge(

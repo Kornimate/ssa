@@ -5,10 +5,9 @@ import { ITraversalContextNode } from "../models/ITraversalContextNode";
 import * as nodeInitializers from "./TraversalContextNode";
 import * as contextInitializers from "./TraversalContext";
 
-export function createEmptyBlock(blockName: string | null = null): IBasicBlock {
+export function createEmptyBlock(): IBasicBlock {
   return {
     statements: [],
-    name: blockName,
     successExit: null,
     falseExit: null,
     exceptionExit: null,
@@ -16,8 +15,8 @@ export function createEmptyBlock(blockName: string | null = null): IBasicBlock {
 }
 
 export function createCFG(): ICFG {
-  const entry = createEmptyBlock("entry");
-  const exit = createEmptyBlock("exit");
+  const entry = createEmptyBlock();
+  const exit = createEmptyBlock();
   return { entry, exit };
 }
 

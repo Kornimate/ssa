@@ -10,7 +10,7 @@ export interface ITraversalContextNode {
   continueTargets: IBasicBlock[] | null;
 
   /** convenience helpers */
-  createBlock: (blockName?: string) => IBasicBlock;
+  createBlock: () => IBasicBlock;
   addStatement: (block: IBasicBlock | null, node: t.Statement) => void;
   addSuccessEdge: (from: IBasicBlock | null, to: IBasicBlock | null) => void;
   addFalseEdge: (from: IBasicBlock | null, to: IBasicBlock | null) => void;

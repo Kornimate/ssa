@@ -95,7 +95,7 @@ function visitStatement(node: t.Statement, ctx: ITraversalContext) {
       activeSubContext.addStatement(activeSubContext.currentBlock, node);
       return;
 
-    default: //need to expand this options this
+    default: //need to expand this with other options
       activeSubContext.addStatement(activeSubContext.currentBlock, node);
   }
 }
@@ -218,7 +218,7 @@ function visitFor(node: t.ForStatement, ctx: ITraversalContext) {
   const activeSubContext = ctx.current()!;
 
   // check if variable is declared in for statement
-  if (node.init) { //this is not in correct place
+  if (node.init) {
     if (t.isVariableDeclaration(node.init))
       activeSubContext.addStatement(activeSubContext.currentBlock, node.init);
     else
@@ -232,7 +232,6 @@ function visitFor(node: t.ForStatement, ctx: ITraversalContext) {
   const condBlock = activeSubContext.createBlock();
   activeSubContext.addSuccessEdge(activeSubContext.currentBlock, condBlock);
   activeSubContext.addStatement(condBlock, node);
-
 
   // create body block
   const bodyBlock = activeSubContext.createBlock();
